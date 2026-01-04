@@ -1,4 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -14,22 +16,22 @@ export default function Layout({ children }: LayoutProps) {
   ]
 
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <nav className='border-b border-gray-200 bg-white'>
+    <div className='min-h-screen bg-background'>
+      <nav className='border-b'>
         <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
-          <div className='flex space-x-8'>
+          <div className='flex space-x-1'>
             {navItems.map(item => (
-              <Link
+              <Button
                 key={item.path}
-                to={item.path}
-                className={`border-b-2 px-1 py-4 text-sm font-medium ${
-                  location.pathname === item.path
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                }`}
+                asChild
+                variant={location.pathname === item.path ? 'default' : 'ghost'}
+                className={cn(
+                  'rounded-none border-b-2 border-transparent',
+                  location.pathname === item.path && 'border-primary'
+                )}
               >
-                {item.label}
-              </Link>
+                <Link to={item.path}>{item.label}</Link>
+              </Button>
             ))}
           </div>
         </div>
