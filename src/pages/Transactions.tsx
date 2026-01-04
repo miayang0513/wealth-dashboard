@@ -73,7 +73,7 @@ export default function Transactions() {
     return transactions
   }, [dateFilteredTransactions, selectedCategory])
 
-  const overview = useMemo(() => calculateOverview(dateFilteredTransactions), [dateFilteredTransactions])
+  const overview = useMemo(() => calculateOverview(dateFilteredTransactions, allTransactions), [dateFilteredTransactions, allTransactions])
 
   const handleFilterChange = (filter: DateFilter) => {
     setDateFilter(filter)

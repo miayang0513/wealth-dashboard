@@ -4,7 +4,6 @@ import {
   Power,
   Receipt,
   Droplet,
-  Building2,
   UtensilsCrossed,
   ShoppingCart,
   Car,
@@ -42,7 +41,6 @@ export const CATEGORY_ORDER: string[] = [
   'Energy',
   'Council Tax',
   'Water',
-  'Council',
   // Daily Expense
   'Eating Out',
   'Groceries',
@@ -51,8 +49,7 @@ export const CATEGORY_ORDER: string[] = [
   'Necessity',
   'Entertainment',
   'Exercise',
-  'Learning',
-  'Subscription',
+  'Productivity',
   'Subscription Service',
   'Others',
 ]
@@ -63,7 +60,6 @@ export const categoryIcons: Record<string, LucideIcon> = {
   'Wi-Fi': Wifi,
   Energy: Power,
   'Council Tax': Receipt,
-  Council: Building2,
   Water: Droplet,
   'Eating Out': UtensilsCrossed,
   Groceries: ShoppingCart,
@@ -72,8 +68,7 @@ export const categoryIcons: Record<string, LucideIcon> = {
   Necessity: Package,
   Entertainment: Music,
   Exercise: Dumbbell,
-  Learning: BookOpen,
-  Subscription: CreditCard,
+  Productivity: BookOpen,
   'Subscription Service': CreditCard,
   Others: CircleDot,
 }

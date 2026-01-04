@@ -26,7 +26,6 @@ const CATEGORY_ORDER: string[] = [
   'Energy',
   'Council Tax',
   'Water',
-  'Council',
   // Daily Expense
   'Eating Out',
   'Groceries',
@@ -35,8 +34,7 @@ const CATEGORY_ORDER: string[] = [
   'Necessity',
   'Entertainment',
   'Exercise',
-  'Learning',
-  'Subscription',
+  'Productivity',
   'Subscription Service',
   'Others',
 ]
@@ -83,8 +81,11 @@ function isIncomeCategory(category: string): boolean {
  * 支出規則：
  * - 所有 finalAmount > 0 的交易
  * - 所有 finalAmount < 0 但不是 Salary 或 OtherIncomes 的交易（取絕對值，與支出抵銷）
+ * 
+ * @param transactions 當前 filter 下的交易（用於計算金額）
+ * @param allTransactions 所有交易（用於收集所有出現過的類別，確保統一顯示）
  */
-export function calculateOverview(transactions: Transaction[]): Overview {
+export function calculateOverview(transactions: Transaction[], allTransactions?: Transaction[]): Overview {
   // 收入：只有 Salary 和 OtherIncomes 類別且 finalAmount < 0 的交易
   const income = transactions
     .filter(t => {
@@ -124,20 +125,31 @@ export function calculateOverview(transactions: Transaction[]): Overview {
   })
   
   // 計算每個類別的最終金額（支出 - 抵銷）
-  const categoryMap = new Map<string, number>()
+  // 收集所有在整個數據中出現過的類別（用於統一顯示，即使當前 filter 下金額為 0 也要顯示）
+  const allCategoriesInData = allTransactions || transactions
+  const allCategoriesSet = new Set<string>()
+  
+  // 從所有交易中收集所有出現過的類別（排除收入類別）
+  allCategoriesInData.forEach(t => {
+    if (!isIncomeCategory(t.category)) {
+      allCategoriesSet.add(t.category)
+    }
+  })
+  
+  // 合併當前 filter 下的類別和所有數據中的類別
   const allCategories = new Set([
+    ...allCategoriesSet,
     ...categoryExpenseMap.keys(),
     ...categoryOffsetMap.keys(),
   ])
   
+  const categoryMap = new Map<string, number>()
   allCategories.forEach(category => {
     const expense = categoryExpenseMap.get(category) || 0
     const offset = categoryOffsetMap.get(category) || 0
     const netAmount = expense - offset
-    // 只顯示抵銷後金額 > 0 的類別
-    if (netAmount > 0) {
-      categoryMap.set(category, netAmount)
-    }
+    // 顯示所有在數據中出現過的類別，包括金額為 0 的
+    categoryMap.set(category, netAmount)
   })
 
   const categoryBreakdown: CategoryBreakdown[] = Array.from(categoryMap.entries())
