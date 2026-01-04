@@ -45,10 +45,37 @@ export function filterTransactionsByDate(transaction: Transaction, filter: DateF
 export function getAvailableYears(transactions: Transaction[]): number[] {
   const years = new Set<number>()
   transactions.forEach(t => {
-    const year = parseInt(t.date.substring(0, 4), 10)
-    if (!isNaN(year)) {
-      years.add(year)
+    try {
+      // 使用 date-fns 的 parse 函數正確解析日期
+      const transactionDate = parse(t.date, 'yyyy-MM-dd HH:mm:ss', new Date())
+      // 檢查日期是否有效（不是 Invalid Date）
+      if (!isNaN(transactionDate.getTime())) {
+        const year = transactionDate.getFullYear()
+        // 只添加合理的年份（例如 2000-2100）
+        if (year >= 2000 && year <= 2100) {
+          years.add(year)
+        }
+      }
+    } catch (error) {
+      // 如果解析失敗，跳過該筆交易
+      console.warn('Failed to parse date:', t.date, error)
     }
   })
   return Array.from(years).sort((a, b) => b - a)
+}
+
+/**
+ * 取得特定年份中可用的月份列表
+ */
+export function getAvailableMonths(transactions: Transaction[], year: number): number[] {
+  const months = new Set<number>()
+  transactions.forEach(t => {
+    const transactionDate = parse(t.date, 'yyyy-MM-dd HH:mm:ss', new Date())
+    const transactionYear = transactionDate.getFullYear()
+    if (transactionYear === year) {
+      const month = transactionDate.getMonth() + 1 // getMonth() 返回 0-11，需要 +1
+      months.add(month)
+    }
+  })
+  return Array.from(months).sort((a, b) => a - b)
 }

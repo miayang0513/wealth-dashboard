@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { loadTransactions } from '@/data/loadData'
 import { Transaction } from '@/models/transaction'
-import { DateFilter, filterTransactionsByDate, getAvailableYears } from '@/utils/dateFilter'
+import { DateFilter, filterTransactionsByDate, getAvailableYears, getAvailableMonths } from '@/utils/dateFilter'
 import { calculateOverview } from '@/models/overview'
 import TransactionFilters from '@/components/TransactionFilters'
 import TransactionOverview from '@/components/TransactionOverview'
@@ -11,20 +11,51 @@ export default function Transactions() {
   const allTransactions = useMemo(() => loadTransactions(), [])
   const availableYears = useMemo(() => getAvailableYears(allTransactions), [allTransactions])
 
-  const [dateFilter, setDateFilter] = useState<DateFilter>({
-    type: 'year',
-    year: undefined,
-  })
-
-  // 當 availableYears 載入後，更新 dateFilter
-  useEffect(() => {
-    if (availableYears.length > 0 && dateFilter.year === undefined) {
-      setDateFilter({
-        type: 'year',
-        year: availableYears[0],
-      })
+  // 預設為當月
+  const getDefaultFilter = (): DateFilter => {
+    const currentYear = new Date().getFullYear()
+    const currentMonth = new Date().getMonth() + 1
+    return {
+      type: 'month',
+      year: currentYear,
+      month: currentMonth,
     }
-  }, [availableYears, dateFilter.year])
+  }
+
+  const [dateFilter, setDateFilter] = useState<DateFilter>(getDefaultFilter())
+  const hasInitialized = useRef(false)
+
+  // 當 availableYears 載入後，檢查並調整初始 dateFilter（只執行一次）
+  useEffect(() => {
+    if (!hasInitialized.current && availableYears.length > 0 && dateFilter.type === 'month') {
+      hasInitialized.current = true
+      const currentYear = new Date().getFullYear()
+      const currentMonth = new Date().getMonth() + 1
+      
+      // 如果當前年份不在可用年份中，使用第一個可用年份的第一個可用月份
+      if (!availableYears.includes(currentYear)) {
+        const months = getAvailableMonths(allTransactions, availableYears[0])
+        if (months.length > 0) {
+          setDateFilter({
+            type: 'month',
+            year: availableYears[0],
+            month: months[0],
+          })
+        }
+      } else {
+        // 檢查當前月份是否在可用月份中
+        const months = getAvailableMonths(allTransactions, currentYear)
+        if (months.length > 0 && !months.includes(currentMonth)) {
+          // 如果當前月份不在可用月份中，使用第一個可用月份
+          setDateFilter({
+            type: 'month',
+            year: currentYear,
+            month: months[0],
+          })
+        }
+      }
+    }
+  }, [availableYears, allTransactions, dateFilter.type])
 
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((t: Transaction) => filterTransactionsByDate(t, dateFilter))
@@ -38,10 +69,14 @@ export default function Transactions() {
 
   return (
     <div>
-      <h1 className='mb-6 text-3xl font-bold tracking-tight'>Transactions</h1>
-
-      <div className='mb-6'>
-        <TransactionFilters filter={dateFilter} availableYears={availableYears} onFilterChange={handleFilterChange} />
+      <div className='mb-6 flex flex-wrap items-center justify-between gap-4'>
+        <h1 className='text-3xl font-bold tracking-tight'>Transactions</h1>
+        <TransactionFilters 
+          filter={dateFilter} 
+          availableYears={availableYears} 
+          allTransactions={allTransactions}
+          onFilterChange={handleFilterChange} 
+        />
       </div>
 
       <div className='mb-6'>
