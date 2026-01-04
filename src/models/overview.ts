@@ -17,6 +17,51 @@ export interface CategoryBreakdown {
 }
 
 /**
+ * 定義固定的類別順序（按照圖片中的順序）
+ */
+const CATEGORY_ORDER: string[] = [
+  // Rent & Bills
+  'Rent',
+  'Wi-Fi',
+  'Energy',
+  'Council Tax',
+  'Water',
+  'Council',
+  // Daily Expense
+  'Eating Out',
+  'Groceries',
+  'Transportation',
+  'Shopping',
+  'Necessity',
+  'Entertainment',
+  'Exercise',
+  'Learning',
+  'Subscription',
+  'Subscription Service',
+  'Others',
+]
+
+/**
+ * 根據固定順序排序類別
+ */
+function sortCategoriesByOrder(categories: CategoryBreakdown[]): CategoryBreakdown[] {
+  return categories.sort((a, b) => {
+    const indexA = CATEGORY_ORDER.indexOf(a.category)
+    const indexB = CATEGORY_ORDER.indexOf(b.category)
+    
+    // 如果兩個類別都在順序列表中，按照順序排序
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB
+    }
+    // 如果只有一個在順序列表中，優先顯示在列表中的
+    if (indexA !== -1) return -1
+    if (indexB !== -1) return 1
+    // 如果都不在順序列表中，按字母順序排序
+    return a.category.localeCompare(b.category)
+  })
+}
+
+/**
  * 計算 Overview 資料
  * 正數為支出（expense），負數為收入（income）
  */
@@ -46,11 +91,13 @@ export function calculateOverview(transactions: Transaction[]): Overview {
       amount,
       percentage: expenses > 0 ? (amount / expenses) * 100 : 0,
     }))
-    .sort((a, b) => b.amount - a.amount)
+
+  // 按照固定順序排序
+  const orderedCategoryBreakdown = sortCategoriesByOrder(categoryBreakdown)
 
   return {
     totalIncome: income,
     totalExpense: expenses,
-    categoryBreakdown,
+    categoryBreakdown: orderedCategoryBreakdown,
   }
 }
