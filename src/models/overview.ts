@@ -62,28 +62,83 @@ function sortCategoriesByOrder(categories: CategoryBreakdown[]): CategoryBreakdo
 }
 
 /**
+ * 定義收入類別（只有這些類別會被計算為收入）
+ */
+const INCOME_CATEGORIES = ['Salary', 'OtherIncomes']
+
+/**
+ * 判斷是否為收入類別
+ */
+function isIncomeCategory(category: string): boolean {
+  return INCOME_CATEGORIES.includes(category)
+}
+
+/**
  * 計算 Overview 資料
  * 正數為支出（expense），負數為收入（income）
+ * 
+ * 收入規則：
+ * - 只有 Salary 和 OtherIncomes 類別且 finalAmount < 0 的交易才被計算為收入
+ * 
+ * 支出規則：
+ * - 所有 finalAmount > 0 的交易
+ * - 所有 finalAmount < 0 但不是 Salary 或 OtherIncomes 的交易（取絕對值，與支出抵銷）
  */
 export function calculateOverview(transactions: Transaction[]): Overview {
-  // 收入：finalAmount < 0，取絕對值累加
+  // 收入：只有 Salary 和 OtherIncomes 類別且 finalAmount < 0 的交易
   const income = transactions
-    .filter(t => getTransactionType(t) === 'income')
+    .filter(t => {
+      const isIncome = getTransactionType(t) === 'income'
+      return isIncome && isIncomeCategory(t.category)
+    })
     .reduce((sum, t) => sum + Math.abs(t.finalAmount), 0)
 
-  // 支出：finalAmount > 0，直接累加
-  const expenses = transactions
-    .filter(t => getTransactionType(t) === 'expense')
+  // 支出：
+  // 1. 所有 finalAmount > 0 的交易（真正的支出）
+  // 2. 所有 finalAmount < 0 但不是 Salary 或 OtherIncomes 的交易（從支出中抵銷，即減去）
+  const positiveExpenses = transactions
+    .filter(t => t.finalAmount > 0)
     .reduce((sum, t) => sum + t.finalAmount, 0)
+  
+  const offsetAmount = transactions
+    .filter(t => t.finalAmount < 0 && !isIncomeCategory(t.category))
+    .reduce((sum, t) => sum + Math.abs(t.finalAmount), 0)
+  
+  const expenses = positiveExpenses - offsetAmount
 
-  // Category breakdown 只計算 expense
+  // Category breakdown 計算每個類別的支出（考慮抵銷）
+  // 對於每個類別：支出金額 = 該類別的正數支出 - 該類別的抵銷收入
+  const categoryExpenseMap = new Map<string, number>() // 正數支出
+  const categoryOffsetMap = new Map<string, number>() // 抵銷收入
+  
+  transactions.forEach(t => {
+    if (t.finalAmount > 0) {
+      // 正數支出
+      const current = categoryExpenseMap.get(t.category) || 0
+      categoryExpenseMap.set(t.category, current + t.finalAmount)
+    } else if (t.finalAmount < 0 && !isIncomeCategory(t.category)) {
+      // 抵銷收入（負數但不是收入類別）
+      const current = categoryOffsetMap.get(t.category) || 0
+      categoryOffsetMap.set(t.category, current + Math.abs(t.finalAmount))
+    }
+  })
+  
+  // 計算每個類別的最終金額（支出 - 抵銷）
   const categoryMap = new Map<string, number>()
-  transactions
-    .filter(t => getTransactionType(t) === 'expense')
-    .forEach(t => {
-      const current = categoryMap.get(t.category) || 0
-      categoryMap.set(t.category, current + t.finalAmount)
-    })
+  const allCategories = new Set([
+    ...categoryExpenseMap.keys(),
+    ...categoryOffsetMap.keys(),
+  ])
+  
+  allCategories.forEach(category => {
+    const expense = categoryExpenseMap.get(category) || 0
+    const offset = categoryOffsetMap.get(category) || 0
+    const netAmount = expense - offset
+    // 只顯示抵銷後金額 > 0 的類別
+    if (netAmount > 0) {
+      categoryMap.set(category, netAmount)
+    }
+  })
 
   const categoryBreakdown: CategoryBreakdown[] = Array.from(categoryMap.entries())
     .map(([category, amount]) => ({
