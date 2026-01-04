@@ -1,0 +1,15 @@
+# Commit Message Template
+# All commit messages MUST be in English
+
+# Type: feat, fix, refactor, style, docs, test, chore
+# Scope: (optional) component, page, model, etc.
+# Description: brief description in English
+
+type(scope): description
+
+# Detailed explanation (optional)
+# 
+# - What changed
+# - Why it changed
+# - Any breaking changes
+

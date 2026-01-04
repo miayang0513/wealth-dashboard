@@ -1,0 +1,17 @@
+# Project Rules
+
+## Git Commit Messages
+- **All commit messages MUST be in English**
+- Use conventional commit format: `type(scope): description`
+- Examples:
+  - `feat: add new feature`
+  - `fix: resolve bug`
+  - `refactor: improve code structure`
+  - `style: update formatting`
+  - `docs: update documentation`
+
+## Code Style
+- Follow TypeScript best practices
+- Use meaningful variable and function names
+- Add comments for complex logic
+
