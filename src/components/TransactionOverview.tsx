@@ -3,28 +3,12 @@ import { Overview, CategoryBreakdown } from '@/models/overview'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import {
-  Home,
-  Wifi,
-  Power,
-  Receipt,
-  Droplet,
-  Building2,
-  UtensilsCrossed,
-  ShoppingCart,
-  Car,
-  ShoppingBag,
-  Package,
-  Music,
-  Dumbbell,
-  BookOpen,
-  CreditCard,
-  CircleDot,
-  type LucideIcon,
-} from 'lucide-react'
+import { getCategoryIcon, getCategoryColor, hexToRgba } from '@/lib/category'
 
 interface TransactionOverviewProps {
   overview: Overview
+  selectedCategory?: string | null
+  onCategoryClick?: (category: string) => void
 }
 
 interface PieDataItem {
@@ -33,43 +17,7 @@ interface PieDataItem {
   percentage: string
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316']
-
-// 類別圖標映射
-const categoryIcons: Record<string, LucideIcon> = {
-  Rent: Home,
-  'Wi-Fi': Wifi,
-  Energy: Power,
-  'Council Tax': Receipt,
-  Council: Building2,
-  Water: Droplet,
-  'Eating Out': UtensilsCrossed,
-  Groceries: ShoppingCart,
-  Transportation: Car,
-  Shopping: ShoppingBag,
-  Necessity: Package,
-  Entertainment: Music,
-  Exercise: Dumbbell,
-  Learning: BookOpen,
-  Subscription: CreditCard,
-  'Subscription Service': CreditCard,
-  Others: CircleDot,
-}
-
-// 根據類別名稱獲取圖標
-function getCategoryIcon(category: string): LucideIcon {
-  return categoryIcons[category] || CircleDot
-}
-
-// 將十六進制顏色轉換為 rgba 格式（添加透明度）
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
-}
-
-export default function TransactionOverview({ overview }: TransactionOverviewProps) {
+export default function TransactionOverview({ overview, selectedCategory, onCategoryClick }: TransactionOverviewProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   
   // 使用固定順序的類別列表
@@ -230,7 +178,7 @@ export default function TransactionOverview({ overview }: TransactionOverviewPro
             <CardTitle className='text-base font-semibold'>支出類別分析</CardTitle>
           </CardHeader>
           <CardContent className='px-4 pb-4'>
-            <div className='flex flex-col md:flex-row items-center gap-8'>
+            <div className='flex flex-col md:flex-row items-center'>
               {/* 圖表 */}
               <div className='relative w-full md:flex-1 md:max-w-md'>
                 <ResponsiveContainer width='100%' height={280}>
@@ -255,7 +203,8 @@ export default function TransactionOverview({ overview }: TransactionOverviewPro
                     >
                       {pieData.map((_: PieDataItem, index: number) => {
                         const isHovered = hoveredIndex === index
-                        const baseColor = COLORS[index % COLORS.length]
+                        const category = orderedCategoryBreakdown[index]?.category || ''
+                        const baseColor = getCategoryColor(category)
                         
                         return (
                           <Cell
@@ -276,9 +225,9 @@ export default function TransactionOverview({ overview }: TransactionOverviewPro
                         if (active && payload && payload.length > 0) {
                           const data = payload[0]
                           const item = pieData.find((d) => d.name === data.name)
-                          const categoryIndex = orderedCategoryBreakdown.findIndex((cat) => cat.category === data.name)
-                          const iconColor = categoryIndex !== -1 ? COLORS[categoryIndex % COLORS.length] : '#8884d8'
-                          const Icon = categoryIndex !== -1 ? getCategoryIcon(orderedCategoryBreakdown[categoryIndex].category) : CircleDot
+                          const categoryName = data.name as string
+                          const iconColor = getCategoryColor(categoryName)
+                          const Icon = getCategoryIcon(categoryName)
                           
                           return (
                             <div className='rounded-md border bg-card p-3 shadow-md z-50 relative'>
@@ -343,14 +292,21 @@ export default function TransactionOverview({ overview }: TransactionOverviewPro
               <div className='flex-1 w-full grid grid-cols-2 md:grid-cols-3 gap-2'>
                 {orderedCategoryBreakdown.map((item: CategoryBreakdown, index: number) => {
                   const Icon = getCategoryIcon(item.category)
-                  const iconColor = COLORS[index % COLORS.length]
+                  const iconColor = getCategoryColor(item.category)
+                  
+                  const isSelected = selectedCategory === item.category
                   
                   return (
                     <div
                       key={item.category}
-                      className='group relative overflow-hidden rounded-md border bg-card p-2.5 transition-all hover:shadow-sm'
+                      className={cn(
+                        'group relative overflow-hidden rounded-md border bg-card p-2.5 transition-all hover:shadow-sm',
+                        isSelected && 'ring-2 ring-primary',
+                        onCategoryClick && 'cursor-pointer'
+                      )}
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
+                      onClick={() => onCategoryClick?.(item.category)}
                     >
                       <div className='flex flex-col gap-1.5'>
                         <div className='flex items-center justify-between'>

@@ -23,6 +23,7 @@ export default function Transactions() {
   }
 
   const [dateFilter, setDateFilter] = useState<DateFilter>(getDefaultFilter())
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const hasInitialized = useRef(false)
 
   // 當 availableYears 載入後，檢查並調整初始 dateFilter（只執行一次）
@@ -31,7 +32,7 @@ export default function Transactions() {
       hasInitialized.current = true
       const currentYear = new Date().getFullYear()
       const currentMonth = new Date().getMonth() + 1
-      
+
       // 如果當前年份不在可用年份中，使用第一個可用年份的第一個可用月份
       if (!availableYears.includes(currentYear)) {
         const months = getAvailableMonths(allTransactions, availableYears[0])
@@ -57,11 +58,22 @@ export default function Transactions() {
     }
   }, [availableYears, allTransactions, dateFilter.type])
 
-  const filteredTransactions = useMemo(() => {
+  // Filter by date only (for overview)
+  const dateFilteredTransactions = useMemo(() => {
     return allTransactions.filter((t: Transaction) => filterTransactionsByDate(t, dateFilter))
   }, [allTransactions, dateFilter])
 
-  const overview = useMemo(() => calculateOverview(filteredTransactions), [filteredTransactions])
+  // Filter by date and category (for table)
+  const filteredTransactions = useMemo(() => {
+    let transactions = dateFilteredTransactions
+    // Filter by category if selected
+    if (selectedCategory) {
+      transactions = transactions.filter((t: Transaction) => t.category === selectedCategory)
+    }
+    return transactions
+  }, [dateFilteredTransactions, selectedCategory])
+
+  const overview = useMemo(() => calculateOverview(dateFilteredTransactions), [dateFilteredTransactions])
 
   const handleFilterChange = (filter: DateFilter) => {
     setDateFilter(filter)
@@ -71,16 +83,23 @@ export default function Transactions() {
     <div>
       <div className='mb-6 flex flex-wrap items-center justify-between gap-4'>
         <h1 className='text-3xl font-bold tracking-tight'>Transactions</h1>
-        <TransactionFilters 
-          filter={dateFilter} 
-          availableYears={availableYears} 
+        <TransactionFilters
+          filter={dateFilter}
+          availableYears={availableYears}
           allTransactions={allTransactions}
-          onFilterChange={handleFilterChange} 
+          onFilterChange={handleFilterChange}
         />
       </div>
 
       <div className='mb-6'>
-        <TransactionOverview overview={overview} />
+        <TransactionOverview
+          overview={overview}
+          selectedCategory={selectedCategory}
+          onCategoryClick={category => {
+            // Toggle: if clicking the same category, deselect it
+            setSelectedCategory(prev => (prev === category ? null : category))
+          }}
+        />
       </div>
 
       <div>
