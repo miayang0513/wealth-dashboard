@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
-import { convertMultipleToGBP, formatCurrency } from '@/utils/currencyConverter'
+import { useEffect, useMemo } from 'react'
+import { useCurrencyStore } from '@/store/currencyStore'
+import { formatCurrency } from '@/utils/currencyConverter'
 import { Transaction } from '@/models/transaction'
 
 /**
@@ -10,63 +11,39 @@ function getTransactionKey(transaction: Transaction): string {
 }
 
 /**
- * Hook to convert transactions' original amounts to GBP using real-time exchange rates
+ * Hook to convert transactions' original amounts to GBP using global currency store
  */
 export function useCurrencyConversion(transactions: Transaction[]) {
-  const [convertedAmounts, setConvertedAmounts] = useState<Map<string, number>>(new Map())
-  const [isLoading, setIsLoading] = useState(true)
+  const rates = useCurrencyStore(state => state.rates)
+  const isLoading = useCurrencyStore(state => state.isLoading)
+  const fetchRates = useCurrencyStore(state => state.fetchRates)
+  const convertToGBP = useCurrencyStore(state => state.convertToGBP)
 
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function convertAmounts() {
-      setIsLoading(true)
-      
-      try {
-        // Prepare amounts for batch conversion
-        const amountsToConvert = transactions.map(t => ({
-          amount: Math.abs(t.originalAmount),
-          currency: t.currency,
-        }))
-
-        // Convert all amounts in batch
-        const converted = await convertMultipleToGBP(amountsToConvert)
-
-        if (!isMounted) return
-
-        // Create a map of transaction key to converted amount
-        const amountMap = new Map<string, number>()
-        transactions.forEach((t, i) => {
-          const key = getTransactionKey(t)
-          // Preserve the sign of original amount
-          const sign = t.originalAmount >= 0 ? 1 : -1
-          amountMap.set(key, converted[i] * sign)
-        })
-
-        setConvertedAmounts(amountMap)
-      } catch (error) {
-        console.error('Error converting currencies:', error)
-        // Fallback to original amounts
-        const fallbackMap = new Map<string, number>()
-        transactions.forEach(t => {
-          const key = getTransactionKey(t)
-          fallbackMap.set(key, t.originalAmount)
-        })
-        setConvertedAmounts(fallbackMap)
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    convertAmounts()
-
-    return () => {
-      isMounted = false
-    }
+  // Extract unique currencies from transactions
+  const currencies = useMemo(() => {
+    return [...new Set(transactions.map(t => t.currency))]
   }, [transactions])
+
+  // Fetch rates for currencies we need (only currencies used in transactions)
+  // Store will check and skip currencies that are already fetched (e.g., USD, TWD from App.tsx)
+  useEffect(() => {
+    if (currencies.length > 0) {
+      fetchRates(currencies)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currencies.join(',')]) // Use string join to avoid object reference issues
+
+  // Convert all transactions using the store
+  const convertedAmounts = useMemo(() => {
+    const amountMap = new Map<string, number>()
+    transactions.forEach(t => {
+      const key = getTransactionKey(t)
+      // Convert using store
+      const converted = convertToGBP(t.originalAmount, t.currency)
+      amountMap.set(key, converted)
+    })
+    return amountMap
+  }, [transactions, rates, convertToGBP])
 
   /**
    * Get converted amount for a transaction
