@@ -192,8 +192,10 @@ export const useCurrencyStore = create<CurrencyStore>((set, get) => {
       }
 
       const rate = get().getRate(fromCurrency)
+      
+      // Return original amount if rate is not available (during loading or if fetch failed)
+      // This is expected behavior and doesn't need a warning
       if (!rate) {
-        console.warn(`Exchange rate not found for ${fromCurrency}, returning original amount`)
         return amount
       }
 
