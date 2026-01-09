@@ -15,6 +15,7 @@ export const TransactionSchema = z.object({
   gf: z.number(),
   girlFriendPercentage: z.number(),
   trip: z.boolean(),
+  currency: z.string(), // Currency code (e.g., "GBP", "TWD")
 })
 
 export type Transaction = z.infer<typeof TransactionSchema>
@@ -57,6 +58,7 @@ export const AccountingDataSchema = z.object({
       Gf: z.union([z.number(), z.boolean()]),
       girlFriendPercentage: z.number(),
       Trip: z.boolean(),
+      Currency: z.string(),
     })
   ),
 })
@@ -96,6 +98,7 @@ export function transformAccountingDataToTransactions(accountingData: Accounting
         gf: toNumber(row.Gf),
         girlFriendPercentage: row.girlFriendPercentage,
         trip: row.Trip,
+        currency: row.Currency,
       })
     }
   }

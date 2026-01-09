@@ -35,7 +35,9 @@ export default function TransactionOverview({ overview, selectedCategory, onCate
     : '0.0'
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount)

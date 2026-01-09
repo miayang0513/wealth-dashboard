@@ -6,6 +6,7 @@ import { calculateOverview } from '@/models/overview'
 import TransactionFilters from '@/components/TransactionFilters'
 import TransactionOverview from '@/components/TransactionOverview'
 import TransactionTable from '@/components/TransactionTable'
+import { useCurrencyConversion } from '@/hooks/useCurrencyConversion'
 
 export default function Transactions() {
   const allTransactions = useMemo(() => loadTransactions(), [])
@@ -73,7 +74,48 @@ export default function Transactions() {
     return transactions
   }, [dateFilteredTransactions, selectedCategory])
 
-  const overview = useMemo(() => calculateOverview(dateFilteredTransactions, allTransactions), [dateFilteredTransactions, allTransactions])
+  // Convert currencies for all transactions (single hook call)
+  const { getConvertedAmount, isLoading: isConverting } = useCurrencyConversion(allTransactions)
+  
+  // Create transactions with converted amounts for overview
+  // Apply Share logic after conversion: if Share is true (share > 0), divide by 2
+  const convertedTransactionsForOverview = useMemo(() => {
+    if (isConverting) return []
+    return dateFilteredTransactions.map(t => {
+      const convertedAmount = getConvertedAmount(t)
+      // Apply Share logic: Share = true means divide by 2 (比例 0.5)
+      const finalAmount = t.share > 0 ? convertedAmount / 2 : convertedAmount
+      return {
+        ...t,
+        finalAmount,
+      }
+    })
+  }, [dateFilteredTransactions, getConvertedAmount, isConverting])
+
+  // Also convert all transactions for category collection
+  const convertedAllTransactions = useMemo(() => {
+    if (isConverting) return []
+    return allTransactions.map(t => {
+      const convertedAmount = getConvertedAmount(t)
+      // Apply Share logic: Share = true means divide by 2
+      const finalAmount = t.share > 0 ? convertedAmount / 2 : convertedAmount
+      return {
+        ...t,
+        finalAmount,
+      }
+    })
+  }, [allTransactions, getConvertedAmount, isConverting])
+
+  const overview = useMemo(() => {
+    if (isConverting || convertedTransactionsForOverview.length === 0) {
+      return {
+        totalIncome: 0,
+        totalExpense: 0,
+        categoryBreakdown: [],
+      }
+    }
+    return calculateOverview(convertedTransactionsForOverview, convertedAllTransactions)
+  }, [convertedTransactionsForOverview, convertedAllTransactions, isConverting])
 
   const handleFilterChange = (filter: DateFilter) => {
     setDateFilter(filter)

@@ -7,6 +7,20 @@ import { cn } from '@/lib/utils'
 import { getCategoryIcon, getCategoryColor, hexToRgba } from '@/lib/category'
 import { ArrowUp, ArrowDown } from 'lucide-react'
 import { parse } from 'date-fns'
+import { useCurrencyConversion } from '@/hooks/useCurrencyConversion'
+
+/**
+ * Get currency symbol for display
+ */
+function getCurrencySymbol(currency: string): string {
+  const currencySymbols: Record<string, string> = {
+    GBP: '£',
+    USD: '$',
+    EUR: '€',
+    TWD: 'NT$',
+  }
+  return currencySymbols[currency] || currency
+}
 
 type SortOrder = 'newest' | 'oldest'
 
@@ -31,6 +45,9 @@ export default function TransactionTable({ transactions }: TransactionTableProps
     })
     return sorted
   }, [transactions, sortOrder])
+
+  // Convert currencies to GBP
+  const { getConvertedAmount, isLoading: isConverting } = useCurrencyConversion(transactions)
 
   const virtualizer = useVirtualizer({
     count: sortedTransactions.length,
@@ -87,7 +104,7 @@ export default function TransactionTable({ transactions }: TransactionTableProps
               Category
             </div>
             <div className='text-muted-foreground flex h-10 items-center px-2 text-left align-middle text-sm font-medium'>
-              Amount
+              Amount (GBP)
             </div>
             <div className='text-muted-foreground flex h-10 items-center px-2 text-left align-middle text-sm font-medium'>
               Notes
@@ -167,9 +184,33 @@ export default function TransactionTable({ transactions }: TransactionTableProps
                         <div className='text-muted-foreground text-xs'>{transaction.date}</div>
                       </div>
                     </div>
-                    <div className={cn('ml-3 shrink-0 text-right text-sm font-medium', amountColor)}>
-                      {transaction.finalAmount > 0 ? '-' : '+'}
-                      {Math.abs(transaction.finalAmount).toFixed(2)}$
+                    <div className={cn('ml-3 shrink-0 text-left text-sm font-medium', amountColor)}>
+                      {(() => {
+                        const convertedAmount = getConvertedAmount(transaction)
+                        const sign = convertedAmount > 0 ? '-' : '+'
+                        const absAmount = Math.abs(convertedAmount)
+                        // Use the same sign as converted amount for consistency
+                        const originalSign = sign
+                        const originalAbsAmount = Math.abs(transaction.originalAmount)
+                        const showOriginal = transaction.currency !== 'GBP'
+                        
+                        return isConverting ? (
+                          <span className='text-muted-foreground'>Loading...</span>
+                        ) : (
+                          <div className='flex flex-col items-start'>
+                            <span>
+                              £ {sign}
+                              {absAmount.toFixed(2)}
+                            </span>
+                            {showOriginal && (
+                              <span className='text-xs text-muted-foreground font-normal'>
+                                ({getCurrencySymbol(transaction.currency)} {originalSign}
+                                {originalAbsAmount.toFixed(2)})
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 )
@@ -242,8 +283,32 @@ export default function TransactionTable({ transactions }: TransactionTableProps
                         <span>{transaction.category}</span>
                       </div>
                       <div className={cn('flex items-center p-2 align-middle text-sm font-medium', amountColor)}>
-                        {transaction.finalAmount > 0 ? '-' : '+'}
-                        {Math.abs(transaction.finalAmount).toFixed(2)}
+                        {(() => {
+                          const convertedAmount = getConvertedAmount(transaction)
+                          const sign = convertedAmount > 0 ? '-' : '+'
+                          const absAmount = Math.abs(convertedAmount)
+                          // Use the same sign as converted amount for consistency
+                          const originalSign = sign
+                          const originalAbsAmount = Math.abs(transaction.originalAmount)
+                          const showOriginal = transaction.currency !== 'GBP'
+                          
+                          return isConverting ? (
+                            <span className='text-muted-foreground'>Loading...</span>
+                          ) : (
+                            <div className='flex flex-col items-start'>
+                              <span>
+                                £ {sign}
+                                {absAmount.toFixed(2)}
+                              </span>
+                              {showOriginal && (
+                                <span className='text-xs text-muted-foreground font-normal'>
+                                  ({getCurrencySymbol(transaction.currency)} {originalSign}
+                                  {originalAbsAmount.toFixed(2)})
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </div>
                       <div className='text-muted-foreground flex items-center p-2 align-middle text-sm'>
                         {transaction.trip ? 'Trip' : ''}
