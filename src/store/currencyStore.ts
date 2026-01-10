@@ -33,7 +33,8 @@ export const useCurrencyStore = create<CurrencyStore>((set, get) => {
 
     if (uniqueCurrencies.length === 0) {
       // Only GBP, no need to fetch
-      set({ rates: { GBP: 1 }, isLoading: false, error: null })
+      // Don't reset rates - keep existing rates for display purposes
+      set({ isLoading: false, error: null })
       return
     }
 

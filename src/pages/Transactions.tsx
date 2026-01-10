@@ -6,6 +6,8 @@ import { calculateOverview } from '@/models/overview'
 import TransactionFilters from '@/components/TransactionFilters'
 import TransactionOverview from '@/components/TransactionOverview'
 import TransactionTable from '@/components/TransactionTable'
+import TransactionChart from '@/components/TransactionChart'
+import TransactionSummary from '@/components/TransactionSummary'
 import { useCurrencyConversion } from '@/hooks/useCurrencyConversion'
 
 export default function Transactions() {
@@ -76,7 +78,7 @@ export default function Transactions() {
 
   // Convert currencies for all transactions (single hook call)
   const { getConvertedAmount, isLoading: isConverting } = useCurrencyConversion(allTransactions)
-  
+
   // Create transactions with converted amounts for overview
   // Apply Share logic after conversion: if Share is true (share > 0), divide by 2
   const convertedTransactionsForOverview = useMemo(() => {
@@ -93,8 +95,15 @@ export default function Transactions() {
   }, [dateFilteredTransactions, getConvertedAmount, isConverting])
 
   // Also convert all transactions for category collection
+  // 即使 isConverting 为 true，也要保留原始交易数据用于收集类别列表
   const convertedAllTransactions = useMemo(() => {
-    if (isConverting) return []
+    // 如果正在转换，使用原始数据（finalAmount 可能不准确，但可以用于收集类别）
+    if (isConverting) {
+      return allTransactions.map(t => ({
+        ...t,
+        finalAmount: t.finalAmount, // 使用原始 finalAmount
+      }))
+    }
     return allTransactions.map(t => {
       const convertedAmount = getConvertedAmount(t)
       // Apply Share logic: Share = true means divide by 2
@@ -107,23 +116,28 @@ export default function Transactions() {
   }, [allTransactions, getConvertedAmount, isConverting])
 
   const overview = useMemo(() => {
-    if (isConverting || convertedTransactionsForOverview.length === 0) {
-      return {
-        totalIncome: 0,
-        totalExpense: 0,
-        categoryBreakdown: [],
-      }
-    }
+    // 即使 isConverting 为 true，也要生成类别列表（使用原始数据）
+    // 这样确保类别列表始终存在，不会因为转换状态而消失
     return calculateOverview(convertedTransactionsForOverview, convertedAllTransactions)
-  }, [convertedTransactionsForOverview, convertedAllTransactions, isConverting])
+  }, [convertedTransactionsForOverview, convertedAllTransactions])
+
+  // Transactions for chart: apply category filter only in Month mode
+  const convertedTransactionsForChart = useMemo(() => {
+    let transactions = convertedTransactionsForOverview
+    // 只在 Month 模式下应用 category filter
+    if (dateFilter.type === 'month' && selectedCategory) {
+      transactions = transactions.filter((t: Transaction) => t.category === selectedCategory)
+    }
+    return transactions
+  }, [convertedTransactionsForOverview, dateFilter.type, selectedCategory])
 
   const handleFilterChange = (filter: DateFilter) => {
     setDateFilter(filter)
   }
 
   return (
-    <div>
-      <div className='mb-6 flex flex-wrap items-center justify-between gap-4'>
+    <div className='space-y-6'>
+      <div className='flex flex-wrap items-center justify-between gap-4'>
         <h1 className='text-3xl font-bold tracking-tight'>Transactions</h1>
         <TransactionFilters
           filter={dateFilter}
@@ -133,20 +147,22 @@ export default function Transactions() {
         />
       </div>
 
-      <div className='mb-6'>
-        <TransactionOverview
-          overview={overview}
-          selectedCategory={selectedCategory}
-          onCategoryClick={category => {
-            // Toggle: if clicking the same category, deselect it
-            setSelectedCategory(prev => (prev === category ? null : category))
-          }}
-        />
-      </div>
+      <TransactionSummary overview={overview} />
 
-      <div>
-        <TransactionTable transactions={filteredTransactions} />
-      </div>
+      <TransactionOverview
+        overview={overview}
+        selectedCategory={selectedCategory}
+        onCategoryClick={category => {
+          // Toggle: if clicking the same category, deselect it
+          setSelectedCategory(prev => (prev === category ? null : category))
+        }}
+      />
+
+      {(dateFilter.type === 'year' || dateFilter.type === 'month') && (
+        <TransactionChart transactions={convertedTransactionsForChart} filter={dateFilter} />
+      )}
+
+      <TransactionTable transactions={filteredTransactions} />
     </div>
   )
 }

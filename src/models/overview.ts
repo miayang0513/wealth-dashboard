@@ -126,7 +126,8 @@ export function calculateOverview(transactions: Transaction[], allTransactions?:
   
   // 計算每個類別的最終金額（支出 - 抵銷）
   // 收集所有在整個數據中出現過的類別（用於統一顯示，即使當前 filter 下金額為 0 也要顯示）
-  const allCategoriesInData = allTransactions || transactions
+  // 優先使用 allTransactions，如果沒有則使用 transactions
+  const allCategoriesInData = allTransactions && allTransactions.length > 0 ? allTransactions : transactions
   const allCategoriesSet = new Set<string>()
   
   // 從所有交易中收集所有出現過的類別（排除收入類別）
@@ -137,6 +138,7 @@ export function calculateOverview(transactions: Transaction[], allTransactions?:
   })
   
   // 合併當前 filter 下的類別和所有數據中的類別
+  // 確保所有在數據中出現過的類別都被包含，即使當前 filter 下沒有該類別的交易
   const allCategories = new Set([
     ...allCategoriesSet,
     ...categoryExpenseMap.keys(),

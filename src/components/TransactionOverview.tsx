@@ -19,7 +19,7 @@ interface PieDataItem {
 
 export default function TransactionOverview({ overview, selectedCategory, onCategoryClick }: TransactionOverviewProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
-  
+
   // 使用固定順序的類別列表
   const orderedCategoryBreakdown = overview.categoryBreakdown
 
@@ -28,11 +28,6 @@ export default function TransactionOverview({ overview, selectedCategory, onCate
     value: item.amount,
     percentage: item.percentage.toFixed(1),
   }))
-
-  const netAmount = overview.totalIncome - overview.totalExpense
-  const netPercentage = overview.totalIncome > 0 
-    ? ((netAmount / overview.totalIncome) * 100).toFixed(1)
-    : '0.0'
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -44,145 +39,17 @@ export default function TransactionOverview({ overview, selectedCategory, onCate
   }
 
   return (
-    <div className='space-y-3'>
-      {/* Summary Cards */}
-      <div className='grid grid-cols-1 gap-2.5 md:grid-cols-3'>
-        {/* 淨額 */}
-        <Card
-          className={cn(
-            'relative overflow-hidden border-l-4 shadow-sm transition-all hover:shadow-md',
-            netAmount >= 0
-              ? 'border-l-green-500'
-              : 'border-l-orange-500'
-          )}
-        >
-          <CardContent className='p-3'>
-            <div className='flex items-start justify-between'>
-              <div className='space-y-0.5'>
-                <p className='text-xs font-medium text-muted-foreground'>淨額</p>
-                <p
-                  className={cn(
-                    'text-xl font-bold',
-                    netAmount >= 0
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-orange-600 dark:text-orange-400'
-                  )}
-                >
-                  {formatCurrency(netAmount)}
-                </p>
-                <p className='text-[10px] text-muted-foreground'>
-                  {netAmount >= 0 ? '+' : ''}{netPercentage}% of income
-                </p>
-              </div>
-              <div
-                className={cn(
-                  'rounded-full p-1.5',
-                  netAmount >= 0
-                    ? 'bg-green-100 dark:bg-green-900/30'
-                    : 'bg-orange-100 dark:bg-orange-900/30'
-                )}
-              >
-                <svg
-                  className={cn(
-                    'h-4 w-4',
-                    netAmount >= 0
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-orange-600 dark:text-orange-400'
-                  )}
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  {netAmount >= 0 ? (
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M13 17h8m0 0V9m0 8l-8-8-4 4-6-6'
-                    />
-                  )}
-                </svg>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 總收入 */}
-        <Card className='relative overflow-hidden border-l-4 border-l-blue-500 shadow-sm transition-all hover:shadow-md'>
-          <CardContent className='p-3'>
-            <div className='flex items-start justify-between'>
-              <div className='space-y-0.5'>
-                <p className='text-xs font-medium text-muted-foreground'>總收入</p>
-                <p className='text-xl font-bold text-blue-600 dark:text-blue-400'>
-                  {formatCurrency(overview.totalIncome)}
-                </p>
-              </div>
-              <div className='rounded-full bg-blue-100 p-1.5 dark:bg-blue-900/30'>
-                <svg
-                  className='h-4 w-4 text-blue-600 dark:text-blue-400'
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M12 4v16m8-8H4'
-                  />
-                </svg>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 總支出 */}
-        <Card className='relative overflow-hidden border-l-4 border-l-red-500 shadow-sm transition-all hover:shadow-md'>
-          <CardContent className='p-3'>
-            <div className='flex items-start justify-between'>
-              <div className='space-y-0.5'>
-                <p className='text-xs font-medium text-muted-foreground'>總支出</p>
-                <p className='text-xl font-bold text-red-600 dark:text-red-400'>
-                  {formatCurrency(overview.totalExpense)}
-                </p>
-              </div>
-              <div className='rounded-full bg-red-100 p-1.5 dark:bg-red-900/30'>
-                <svg
-                  className='h-4 w-4 text-red-600 dark:text-red-400'
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M20 12H4'
-                  />
-                </svg>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+    <>
       {/* Category Breakdown */}
       {overview.categoryBreakdown.length > 0 && (
         <Card className='shadow-sm'>
-          <CardHeader className='pb-2 pt-4 px-4'>
+          <CardHeader className='px-4 pt-4 pb-2'>
             <CardTitle className='text-base font-semibold'>支出類別分析</CardTitle>
           </CardHeader>
           <CardContent className='px-4 pb-4'>
-            <div className='flex flex-col md:flex-row items-center'>
+            <div className='flex flex-col items-center md:flex-row'>
               {/* 圖表 */}
-              <div className='relative w-full md:flex-1 md:max-w-md'>
+              <div className='relative w-full md:max-w-md md:flex-1'>
                 <ResponsiveContainer width='100%' height={280}>
                   <PieChart>
                     <Pie
@@ -206,15 +73,19 @@ export default function TransactionOverview({ overview, selectedCategory, onCate
                       {pieData.map((_: PieDataItem, index: number) => {
                         const isHovered = hoveredIndex === index
                         const category = orderedCategoryBreakdown[index]?.category || ''
+                        const isSelected = selectedCategory === category
                         const baseColor = getCategoryColor(category)
                         
+                        // Apply hover or selected effect
+                        const isHighlighted = isHovered || isSelected
+
                         return (
                           <Cell
                             key={`cell-${index}`}
                             fill={baseColor}
-                            opacity={isHovered ? 1 : hoveredIndex !== null ? 0.3 : 1}
+                            opacity={isHighlighted ? 1 : (hoveredIndex !== null || selectedCategory !== null) ? 0.3 : 1}
                             style={{
-                              filter: isHovered ? 'brightness(1.1) drop-shadow(0 0 8px rgba(0,0,0,0.2))' : 'none',
+                              filter: isHighlighted ? 'brightness(1.1) drop-shadow(0 0 8px rgba(0,0,0,0.2))' : 'none',
                               transition: 'all 0.2s ease',
                               cursor: 'pointer',
                             }}
@@ -226,33 +97,33 @@ export default function TransactionOverview({ overview, selectedCategory, onCate
                       content={({ active, payload }) => {
                         if (active && payload && payload.length > 0) {
                           const data = payload[0]
-                          const item = pieData.find((d) => d.name === data.name)
+                          const item = pieData.find(d => d.name === data.name)
                           const categoryName = data.name as string
                           const iconColor = getCategoryColor(categoryName)
                           const Icon = getCategoryIcon(categoryName)
-                          
+
                           return (
-                            <div className='rounded-md border bg-card p-3 shadow-md z-50 relative'>
-                              <div className='flex items-center gap-2 mb-2'>
+                            <div className='bg-card relative z-50 rounded-md border p-3 shadow-md'>
+                              <div className='mb-2 flex items-center gap-2'>
                                 {/* Icon */}
                                 <div
-                                  className='p-1 rounded-md shrink-0 flex items-center justify-center'
+                                  className='flex shrink-0 items-center justify-center rounded-md p-1'
                                   style={{ backgroundColor: hexToRgba(iconColor, 0.1) }}
                                 >
-                                  <Icon
-                                    className='h-3.5 w-3.5'
-                                    style={{ color: iconColor }}
-                                  />
+                                  <Icon className='h-3.5 w-3.5' style={{ color: iconColor }} />
                                 </div>
-                                <p className='font-semibold text-sm'>{data.name}</p>
+                                <p className='text-sm font-semibold'>{data.name}</p>
                               </div>
                               <div className='space-y-0.5 text-xs'>
                                 <p className='text-muted-foreground'>
-                                  金額: <span className='font-semibold text-foreground'>{formatCurrency(data.value as number)}</span>
+                                  金額:{' '}
+                                  <span className='text-foreground font-semibold'>
+                                    {formatCurrency(data.value as number)}
+                                  </span>
                                 </p>
                                 {item && (
                                   <p className='text-muted-foreground'>
-                                    百分比: <span className='font-semibold text-foreground'>{item.percentage}%</span>
+                                    百分比: <span className='text-foreground font-semibold'>{item.percentage}%</span>
                                   </p>
                                 )}
                               </div>
@@ -265,45 +136,54 @@ export default function TransactionOverview({ overview, selectedCategory, onCate
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                {/* 中心顯示總金額或 hover 的項目信息 */}
-                <div className='absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-0'>
-                  {hoveredIndex !== null && orderedCategoryBreakdown[hoveredIndex] ? (
-                    <>
-                      <p className='text-xs font-medium text-muted-foreground mb-1'>
-                        {orderedCategoryBreakdown[hoveredIndex].category}
-                      </p>
-                      <p className='text-lg font-bold text-foreground mb-0.5'>
-                        {formatCurrency(orderedCategoryBreakdown[hoveredIndex].amount)}
-                      </p>
-                      <p className='text-xs text-muted-foreground'>
-                        {orderedCategoryBreakdown[hoveredIndex].percentage.toFixed(1)}%
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className='text-xs font-medium text-muted-foreground'>Total</p>
-                      <p className='text-lg font-bold text-foreground'>
-                        {formatCurrency(overview.totalExpense)}
-                      </p>
-                    </>
-                  )}
+                {/* 中心顯示總金額或 hover/selected 的項目信息 */}
+                <div className='pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center'>
+                  {(() => {
+                    // 优先显示选中的 category，其次显示 hover 的
+                    const selectedIndex = selectedCategory 
+                      ? orderedCategoryBreakdown.findIndex(item => item.category === selectedCategory)
+                      : -1
+                    const displayIndex = selectedIndex >= 0 ? selectedIndex : hoveredIndex
+                    
+                    if (displayIndex !== null && displayIndex >= 0 && orderedCategoryBreakdown[displayIndex]) {
+                      return (
+                        <>
+                          <p className='text-muted-foreground mb-1 text-xs font-medium'>
+                            {orderedCategoryBreakdown[displayIndex].category}
+                          </p>
+                          <p className='text-foreground mb-0.5 text-lg font-bold'>
+                            {formatCurrency(orderedCategoryBreakdown[displayIndex].amount)}
+                          </p>
+                          <p className='text-muted-foreground text-xs'>
+                            {orderedCategoryBreakdown[displayIndex].percentage.toFixed(1)}%
+                          </p>
+                        </>
+                      )
+                    }
+                    return (
+                      <>
+                        <p className='text-muted-foreground text-xs font-medium'>Total</p>
+                        <p className='text-foreground text-lg font-bold'>{formatCurrency(overview.totalExpense)}</p>
+                      </>
+                    )
+                  })()}
                 </div>
               </div>
 
               {/* 列表（代替圖例） */}
-              <div className='flex-1 w-full grid grid-cols-2 md:grid-cols-3 gap-2'>
+              <div className='grid w-full flex-1 grid-cols-2 gap-2 md:grid-cols-3'>
                 {orderedCategoryBreakdown.map((item: CategoryBreakdown, index: number) => {
                   const Icon = getCategoryIcon(item.category)
                   const iconColor = getCategoryColor(item.category)
-                  
+
                   const isSelected = selectedCategory === item.category
-                  
+
                   return (
                     <div
                       key={item.category}
                       className={cn(
-                        'group relative overflow-hidden rounded-md border bg-card p-2.5 transition-all hover:shadow-sm',
-                        isSelected && 'ring-2 ring-primary',
+                        'group bg-card relative overflow-hidden rounded-md border p-2.5 transition-all hover:shadow-sm',
+                        isSelected && 'ring-primary ring-2',
                         onCategoryClick && 'cursor-pointer'
                       )}
                       onMouseEnter={() => setHoveredIndex(index)}
@@ -312,35 +192,27 @@ export default function TransactionOverview({ overview, selectedCategory, onCate
                     >
                       <div className='flex flex-col gap-1.5'>
                         <div className='flex items-center justify-between'>
-                          <div className='flex items-center gap-1.5 flex-1 min-w-0'>
+                          <div className='flex min-w-0 flex-1 items-center gap-1.5'>
                             {/* 顏色圓點 */}
-                            <div
-                              className='w-2.5 h-2.5 rounded-full shrink-0'
-                              style={{ backgroundColor: iconColor }}
-                            />
+                            <div className='h-2.5 w-2.5 shrink-0 rounded-full' style={{ backgroundColor: iconColor }} />
                             {/* Icon */}
                             <div
-                              className='p-1 rounded-md shrink-0 flex items-center justify-center'
+                              className='flex shrink-0 items-center justify-center rounded-md p-1'
                               style={{ backgroundColor: hexToRgba(iconColor, 0.1) }}
                             >
-                              <Icon
-                                className='h-3.5 w-3.5'
-                                style={{ color: iconColor }}
-                              />
+                              <Icon className='h-3.5 w-3.5' style={{ color: iconColor }} />
                             </div>
-                            <span className='font-medium text-xs truncate'>{item.category}</span>
+                            <span className='truncate text-xs font-medium'>{item.category}</span>
                           </div>
                         </div>
                         <div className='flex items-baseline justify-between gap-2'>
-                          <div className='font-semibold text-sm truncate'>
-                            {formatCurrency(item.amount)}
-                          </div>
-                          <div className='text-[10px] text-muted-foreground whitespace-nowrap'>
+                          <div className='truncate text-sm font-semibold'>{formatCurrency(item.amount)}</div>
+                          <div className='text-muted-foreground text-[10px] whitespace-nowrap'>
                             {item.percentage.toFixed(1)}%
                           </div>
                         </div>
                         {/* Progress bar */}
-                        <div className='mt-1 h-1 w-full overflow-hidden rounded-full bg-muted'>
+                        <div className='bg-muted mt-1 h-1 w-full overflow-hidden rounded-full'>
                           <div
                             className='h-full transition-all duration-500'
                             style={{
@@ -358,6 +230,6 @@ export default function TransactionOverview({ overview, selectedCategory, onCate
           </CardContent>
         </Card>
       )}
-    </div>
+    </>
   )
 }
