@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { requestDeduplicator } from '@/utils/requestDeduplicator'
 
 const TARGET_CURRENCY = 'GBP'
 const EXCHANGE_RATE_API = 'https://api.exchangerate-api.com/v4/latest'
@@ -25,8 +26,6 @@ interface CurrencyStore {
 export const useCurrencyStore = create<CurrencyStore>((set, get) => {
   let pollInterval: NodeJS.Timeout | null = null
   const requestedCurrencies: Set<string> = new Set()
-  // Track pending requests to prevent duplicate concurrent requests
-  const pendingRequests: Map<string, Promise<number | null>> = new Map()
 
   const internalFetchRates = async (currencies: string[], forceRefresh = false): Promise<void> => {
     const uniqueCurrencies = [...new Set(currencies)].filter(c => c !== TARGET_CURRENCY)
@@ -53,9 +52,12 @@ export const useCurrencyStore = create<CurrencyStore>((set, get) => {
         return
       }
 
-      if (pendingRequests.has(currency)) {
+      // Check if there's a pending request using the deduplicator
+      const requestKey = `fetchRate:${currency}`
+      const pendingPromise = requestDeduplicator.getPending<number>(requestKey)
+      if (pendingPromise) {
         // Already requesting, wait for existing request
-        pendingPromises.push(pendingRequests.get(currency)!)
+        pendingPromises.push(pendingPromise)
         return
       }
 
@@ -79,10 +81,12 @@ export const useCurrencyStore = create<CurrencyStore>((set, get) => {
 
     try {
       // Fetch rates for each currency that we don't have yet
-      // Use pending requests map to prevent duplicate concurrent requests
+      // Use requestDeduplicator to prevent duplicate concurrent requests
       const ratePromises = currenciesToFetch.map(async currency => {
-        // Create a single request promise per currency
-        const requestPromise = (async () => {
+        const requestKey = `fetchRate:${currency}`
+        
+        // Use requestDeduplicator to prevent duplicate requests
+        const rate = await requestDeduplicator.execute(requestKey, async () => {
           try {
             const response = await fetch(`${EXCHANGE_RATE_API}/${currency}`)
 
@@ -101,16 +105,9 @@ export const useCurrencyStore = create<CurrencyStore>((set, get) => {
           } catch (error) {
             console.error(`Error fetching rate for ${currency}:`, error)
             return null
-          } finally {
-            // Remove from pending requests when done
-            pendingRequests.delete(currency)
           }
-        })()
+        })
 
-        // Store the promise to prevent duplicate requests
-        pendingRequests.set(currency, requestPromise)
-
-        const rate = await requestPromise
         return { currency, rate }
       })
 

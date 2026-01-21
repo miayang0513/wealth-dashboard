@@ -11,7 +11,29 @@ import TransactionSummary from '@/components/TransactionSummary'
 import { useCurrencyConversion } from '@/hooks/useCurrencyConversion'
 
 export default function Transactions() {
-  const allTransactions = useMemo(() => loadTransactions(), [])
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // 載入交易數據
+  useEffect(() => {
+    async function fetchTransactions() {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const transactions = await loadTransactions()
+        setAllTransactions(transactions)
+      } catch (err) {
+        console.error('Error loading transactions:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load transactions from Supabase')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchTransactions()
+  }, [])
+
   const availableYears = useMemo(() => getAvailableYears(allTransactions), [allTransactions])
 
   // 預設為當月
@@ -133,6 +155,41 @@ export default function Transactions() {
 
   const handleFilterChange = (filter: DateFilter) => {
     setDateFilter(filter)
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className='flex items-center justify-center min-h-[400px]'>
+        <div className='text-center space-y-4'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto'></div>
+          <p className='text-muted-foreground'>Loading transactions...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className='flex items-center justify-center min-h-[400px]'>
+        <div className='text-center space-y-4'>
+          <p className='text-destructive font-medium'>Error loading transactions</p>
+          <p className='text-sm text-muted-foreground'>{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Empty state
+  if (allTransactions.length === 0) {
+    return (
+      <div className='flex items-center justify-center min-h-[400px]'>
+        <div className='text-center space-y-4'>
+          <p className='text-muted-foreground'>No transactions found</p>
+        </div>
+      </div>
+    )
   }
 
   return (
